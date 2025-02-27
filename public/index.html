@@ -670,61 +670,76 @@
        y almacenar con ruta /zonas/<Zona>
     ============================================================ */
     function generatePDF() {
-      const sucursal = document.getElementById("sucursal").value;
-      const zone = obtenerZonaPorSucursal(sucursal);
+  const sucursal = document.getElementById("sucursal").value;
+  const zone = obtenerZonaPorSucursal(sucursal);
 
-      // Calcula la fecha de la próxima semana (lunes a domingo)
-      const { monday, sunday } = getNextMondaySunday();
-      const dateRange = `Del ${formatDateDMY(monday)} al ${formatDateDMY(sunday)}`;
+  // Calcula la fecha de la próxima semana (lunes a domingo)
+  const { monday, sunday } = getNextMondaySunday();
+  const dateRange = `Del ${formatDateDMY(monday)} al ${formatDateDMY(sunday)}`;
 
-      const grafico = document.getElementById("graficoHorarios");
-      html2canvas(grafico, { scale: 2 }).then(canvas => {
-        const imgData = canvas.toDataURL("image/png");
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF("landscape", "pt", "a4");
+  const grafico = document.getElementById("graficoHorarios");
+  html2canvas(grafico, { scale: 2 }).then(canvas => {
+    const imgData = canvas.toDataURL("image/png");
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF("landscape", "pt", "a4");
 
-        pdf.setFontSize(14);
-        pdf.text(`Sucursal: ${sucursal} - ${dateRange} `, 20, 30);
+    pdf.setFontSize(14);
+    pdf.text(`Sucursal: ${sucursal} - ${dateRange}`, 20, 30);
 
-        pdf.addImage(
-          imgData,
-          "PNG",
-          10,
-          50,
-          pdf.internal.pageSize.getWidth() - 20,
-          canvas.height * ((pdf.internal.pageSize.getWidth() - 20) / canvas.width)
-        );
+    // Obtenemos dimensiones de la página y definimos márgenes
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 20;
+    const usableWidth = pageWidth - margin * 2;
+    const usableHeight = pageHeight - 50 - margin; // 50 para encabezado
 
-        // Sanitizamos las fechas para el nombre del archivo
-        const safeMonday = formatDateDMY(monday).replace(/\//g, "-");
-        const safeSunday = formatDateDMY(sunday).replace(/\//g, "-");
-        const fileName = `Horarios_${sucursal}.pdf`;
+    // Calcula el ancho y alto de la imagen, manteniendo la relación de aspecto
+    let imgWidth = usableWidth;
+    let imgHeight = canvas.height * (imgWidth / canvas.width);
 
-        const pdfDataUri = pdf.output("datauristring");
-
-        // Llamada al endpoint para almacenar el PDF en el servidor
-        fetch("/almacenar_pdf", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sucursal: sucursal,
-            pdfData: pdfDataUri,
-            fileName: fileName
-          })
-        })
-        .then(response => response.json())
-        .then(data => {
-          console.log("PDF almacenado:", data);
-          alert("PDF generado y almacenado en el servidor");
-        })
-        .catch(error => {
-          console.error("Error al almacenar PDF:", error);
-        });
-
-        // Descarga local en el navegador
-        pdf.save(fileName);
-      });
+    // Si la imagen es demasiado alta, escalarla para que quepa en el alto utilizable
+    if (imgHeight > usableHeight) {
+      const scale = usableHeight / imgHeight;
+      imgWidth = imgWidth * scale;
+      imgHeight = imgHeight * scale;
     }
+
+    // Agrega la imagen centrada en la página
+    const x = margin; // o calcular (pageWidth - imgWidth) / 2 para centrar horizontalmente
+    const y = 50;     // debajo del encabezado
+    pdf.addImage(imgData, "PNG", x, y, imgWidth, imgHeight);
+
+    // Sanitizamos las fechas para el nombre del archivo
+    const safeMonday = formatDateDMY(monday).replace(/\//g, "-");
+    const safeSunday = formatDateDMY(sunday).replace(/\//g, "-");
+    const fileName = `Horarios_${sucursal}_${safeMonday}_al_${safeSunday}.pdf`;
+
+    const pdfDataUri = pdf.output("datauristring");
+
+    // Llamada al endpoint para almacenar el PDF en el servidor
+    fetch("/almacenar_pdf", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sucursal: sucursal,
+        pdfData: pdfDataUri,
+        fileName: fileName
+      })
+    })
+      .then(response => response.json())
+      .then(data => {
+        console.log("PDF almacenado:", data);
+        alert("PDF generado y almacenado en el servidor");
+      })
+      .catch(error => {
+        console.error("Error al almacenar PDF:", error);
+      });
+
+    // Descarga local en el navegador
+    pdf.save(fileName);
+  });
+}
+
 
     /* ============================================================
        Exportar a Excel con plantilla (y subir al servidor)
