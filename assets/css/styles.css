@@ -1,0 +1,109 @@
+/* assets/css/styles.css */
+
+body {
+    font-family: "Roboto", sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f5f5f5;
+    color: #333;
+  }
+  .container {
+    max-width: 1000px;
+    margin: auto;
+    background: #fff;
+    border-radius: 10px;
+    padding: 20px 30px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+  }
+  h2 {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .form-section {
+    margin-bottom: 20px;
+  }
+  label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+  }
+  input, select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 10px;
+  }
+  button {
+    background-color: #28a745;
+    border: none;
+    padding: 10px 15px;
+    color: #fff;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    font-size: 1rem;
+    margin-right: 10px;
+  }
+  button:hover {
+    background-color: #218838;
+  }
+  .empleado-container {
+    background: #f9f9f9;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 0 5px rgba(0,0,0,0.05);
+  }
+  .empleado-container h3 {
+    margin-top: 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: 0.9rem;
+  }
+  table th, table td {
+    border: 1px solid #ddd;
+    padding: 5px;
+    text-align: center;
+  }
+  table th {
+    background-color: #333;
+    color: #fff;
+  }
+  #graficoHorarios {
+    margin-top: 30px;
+    overflow-x: auto;
+  }
+  .day-table-title {
+    margin: 10px 0 5px;
+    font-weight: bold;
+    font-size: 1rem;
+    text-decoration: underline;
+  }
+  /* Colores para la vista del gráfico */
+  .shift-cell {
+    background-color: #97f197;
+  }
+  .meal-cell {
+    background-color: #fadc8b;
+    font-weight: bold;
+  }
+  .rest-cell {
+    background-color: #75affa;
+  }
+  .empty-cell {
+    background-color: #fff;
+  }
+  .vacante-cell {
+    background-color: #ff5454;
+  }
+  
+  /* Estilos extra para botones agrupados */
+  .buttons {
+    margin-top: 20px;
+  }
+  
