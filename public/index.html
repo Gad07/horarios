@@ -669,7 +669,7 @@
        Exportar a PDF con fecha de la siguiente semana
        y almacenar con ruta /zonas/<Zona>
     ============================================================ */
-    function generatePDF() {
+   function generatePDF() {
   const sucursal = document.getElementById("sucursal").value;
   const zone = obtenerZonaPorSucursal(sucursal);
 
@@ -739,6 +739,7 @@
     pdf.save(fileName);
   });
 }
+
 
 
     /* ============================================================
