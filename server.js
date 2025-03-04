@@ -2,39 +2,38 @@
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
-const { exec } = require("child_process");
 
 // Función para obtener la zona según la sucursal
 function obtenerZonaPorSucursal(sucursal) {
-    // Convertimos a minúsculas y eliminamos espacios extras
-    const s = sucursal.trim().toLowerCase();
-  
-    // Definimos los arreglos con los nombres en minúsculas
-    // Zona 1: "Galerías Tlaxcala", "Sendero Ixtapaluca", "Galerías Coapa", "Plaza Aragón", "Portal San Ángel", "Sonata", "UDLAP"
-    const zona1 = ["galerías tlaxcala", "sendero ixtapaluca", "galerías coapa", "plaza aragón", "portal san ángel", "sonata", "udlap"];
-    
-    // Zona 2: "Avándaro", "Calimaya", "Carranza", "Outlet Lerma 1", "Outlet Lerma 2", "Sendero Toluca", "Tecnológico Metepec", "Plaza la Vendimia"
-    const zona2 = ["avándaro", "calimaya", "carranza", "outlet lerma 1", "outlet lerma 2", "sendero toluca", "tecnológico metepec", "plaza la vendimia"];
-    
-    // Zona 3: "Galerías Saltillo", "Galerías Zacatecas", "Patio Saltillo", "Sendero Sur Saltillo", "Sendero Escobedo", "Sendero San Roque"
-    const zona3 = ["galerías saltillo", "galerías zacatecas", "patio saltillo", "sendero sur saltillo", "sendero escobedo", "sendero san roque"];
-    
-    // Zona 4: "Celaya", "Galerías Querétaro", "Patio Querétaro", "Alaïa", "Tecnológico Querétaro"
-    const zona4 = ["celaya", "galerías querétaro", "patio querétaro", "alaïa", "tecnológico querétaro"];
-    
-    // Zona 5: "Galerías Campeche", "Galeráis San Juan", "Galerías La Paz", "Ámbar Tuxtla Gutiérrez"
-    const zona5 = ["galerías campeche", "galeráis san juan", "galerías la paz", "ámbar tuxtla gutiérrez"];
-    
-    // Zona 6: "Galerías Metepec 1", "Galerías Metepec 2"
-    const zona6 = ["galerías metepec 1", "galerías metepec 2"];
-  
-    if (zona1.includes(s)) return "Zona 1";
-    else if (zona2.includes(s)) return "Zona 2";
-    else if (zona3.includes(s)) return "Zona 3";
-    else if (zona4.includes(s)) return "Zona 4";
-    else if (zona5.includes(s)) return "Zona 5";
-    else if (zona6.includes(s)) return "Zona 6";
-    else return "Horarios";
+  // Convertimos a minúsculas y eliminamos espacios extras
+  const s = sucursal.trim().toLowerCase();
+
+  // Definimos los arreglos con los nombres en minúsculas
+  // Zona 1: "Galerías Tlaxcala", "Sendero Ixtapaluca", "Galerías Coapa", "Plaza Aragón", "Portal San Ángel", "Sonata", "UDLAP"
+  const zona1 = ["galerías tlaxcala", "sendero ixtapaluca", "galerías coapa", "plaza aragón", "portal san ángel", "sonata", "udlap"];
+
+  // Zona 2: "Avándaro", "Calimaya", "Carranza", "Outlet Lerma 1", "Outlet Lerma 2", "Sendero Toluca", "Tecnológico Metepec", "Plaza la Vendimia"
+  const zona2 = ["avándaro", "calimaya", "carranza", "outlet lerma 1", "outlet lerma 2", "sendero toluca", "tecnológico metepec", "plaza la vendimia"];
+
+  // Zona 3: "Galerías Saltillo", "Galerías Zacatecas", "Patio Saltillo", "Sendero Sur Saltillo", "Sendero Escobedo", "Sendero San Roque"
+  const zona3 = ["galerías saltillo", "galerías zacatecas", "patio saltillo", "sendero sur saltillo", "sendero escobedo", "sendero san roque"];
+
+  // Zona 4: "Celaya", "Galerías Querétaro", "Patio Querétaro", "Alaïa", "Tecnológico Querétaro"
+  const zona4 = ["celaya", "galerías querétaro", "patio querétaro", "alaïa", "tecnológico querétaro"];
+
+  // Zona 5: "Galerías Campeche", "Galeráis San Juan", "Galerías La Paz", "Ámbar Tuxtla Gutiérrez"
+  const zona5 = ["galerías campeche", "galeráis san juan", "galerías la paz", "ámbar tuxtla gutiérrez"];
+
+  // Zona 6: "Galerías Metepec 1", "Galerías Metepec 2"
+  const zona6 = ["galerías metepec 1", "galerías metepec 2"];
+
+  if (zona1.includes(s)) return "Zona 1";
+  else if (zona2.includes(s)) return "Zona 2";
+  else if (zona3.includes(s)) return "Zona 3";
+  else if (zona4.includes(s)) return "Zona 4";
+  else if (zona5.includes(s)) return "Zona 5";
+  else if (zona6.includes(s)) return "Zona 6";
+  else return "Horarios";
 }
 
 const app = express();
@@ -53,7 +52,7 @@ app.get("/consultor", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "consultor.html"));
 });
 
-// Endpoint para almacenar PDF con optimización
+// Endpoint para almacenar PDF
 app.post("/almacenar_pdf", (req, res) => {
   const { sucursal, pdfData, fileName } = req.body;
   if (!sucursal || !pdfData) {
@@ -71,24 +70,8 @@ app.post("/almacenar_pdf", (req, res) => {
   const base64Str = pdfData.split(",")[1] || pdfData;
   const pdfBuffer = Buffer.from(base64Str, "base64");
 
-  // Guardar el PDF original
   fs.writeFileSync(filePath, pdfBuffer);
-
-  // Ruta para el PDF optimizado (archivo temporal)
-  const optimizedFilePath = filePath.replace(".pdf", "_optimized.pdf");
-
-  // Comando Ghostscript para optimizar el PDF
-  const cmd = `gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/screen -dNOPAUSE -dQUIET -dBATCH -sOutputFile="${optimizedFilePath}" "${filePath}"`;
-
-  exec(cmd, (error, stdout, stderr) => {
-    if (error) {
-      console.error("Error al optimizar PDF:", error);
-      return res.status(500).json({ error: "Error al optimizar PDF." });
-    }
-    // Reemplazar el archivo original por el optimizado
-    fs.renameSync(optimizedFilePath, filePath);
-    return res.json({ message: `PDF guardado y optimizado en ${filePath}` });
-  });
+  return res.json({ message: `PDF guardado en ${filePath}` });
 });
 
 // Endpoint para almacenar Excel
