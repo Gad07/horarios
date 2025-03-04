@@ -2,6 +2,7 @@
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
+const { exec } = require("child_process");
 
 // Función para obtener la zona según la sucursal
 function obtenerZonaPorSucursal(sucursal) {
@@ -34,8 +35,7 @@ function obtenerZonaPorSucursal(sucursal) {
     else if (zona5.includes(s)) return "Zona 5";
     else if (zona6.includes(s)) return "Zona 6";
     else return "Horarios";
-  }
-  
+}
 
 const app = express();
 app.use(express.json({ limit: "50mb" })); // Para recibir base64 grandes
@@ -53,7 +53,7 @@ app.get("/consultor", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "consultor.html"));
 });
 
-// Endpoint para almacenar PDF
+// Endpoint para almacenar PDF con optimización
 app.post("/almacenar_pdf", (req, res) => {
   const { sucursal, pdfData, fileName } = req.body;
   if (!sucursal || !pdfData) {
@@ -71,8 +71,24 @@ app.post("/almacenar_pdf", (req, res) => {
   const base64Str = pdfData.split(",")[1] || pdfData;
   const pdfBuffer = Buffer.from(base64Str, "base64");
 
+  // Guardar el PDF original
   fs.writeFileSync(filePath, pdfBuffer);
-  return res.json({ message: `PDF guardado en ${filePath}` });
+
+  // Ruta para el PDF optimizado (archivo temporal)
+  const optimizedFilePath = filePath.replace(".pdf", "_optimized.pdf");
+
+  // Comando Ghostscript para optimizar el PDF
+  const cmd = `gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/screen -dNOPAUSE -dQUIET -dBATCH -sOutputFile="${optimizedFilePath}" "${filePath}"`;
+
+  exec(cmd, (error, stdout, stderr) => {
+    if (error) {
+      console.error("Error al optimizar PDF:", error);
+      return res.status(500).json({ error: "Error al optimizar PDF." });
+    }
+    // Reemplazar el archivo original por el optimizado
+    fs.renameSync(optimizedFilePath, filePath);
+    return res.json({ message: `PDF guardado y optimizado en ${filePath}` });
+  });
 });
 
 // Endpoint para almacenar Excel
