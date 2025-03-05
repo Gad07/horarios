@@ -113,7 +113,6 @@
     }
   </style>
   <!-- Librerías externas (CDN) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
@@ -169,8 +168,7 @@
     <form id="horariosForm">
       <div id="empleados"></div>
       <div class="buttons">
-        <button type="button" onclick="downloadExcel()">Generar Excel</button>
-        <button type="button" onclick="generateExcelFromTemplate()">Generar Excel con Plantilla</button>
+        <!-- Únicamente se deja el botón para generar el PDF -->
         <button type="button" onclick="generatePDF()">Generar PDF del Gráfico</button>
       </div>
     </form>
@@ -182,32 +180,19 @@
     <!-- El gráfico se generará dinámicamente -->
   </div>
 
-  <!-- Lógica completa en JavaScript -->
+  <!-- Lógica en JavaScript -->
   <script>
     /* ============================================================
        Funciones auxiliares
     ============================================================ */
     function obtenerZonaPorSucursal(sucursal) {
       const s = sucursal.trim();
-      
-      // Zona 1: "Galerías Tlaxcala", "Sendero Ixtapaluca", "Galerías Coapa", "Plaza Aragón", "Portal San Ángel", "Sonata", "UDLAP"
       const zona1 = ["Galerías Tlaxcala", "Sendero Ixtapaluca", "Galerías Coapa", "Plaza Aragón", "Portal San Ángel", "Sonata", "UDLAP"];
-      
-      // Zona 2: "Avándaro", "Calimaya", "Carranza", "Outlet Lerma 1", "Outlet Lerma 2", "Sendero Toluca", "Tecnológico Metepec", "Plaza la Vendimia"
       const zona2 = ["Avándaro", "Calimaya", "Carranza", "Outlet Lerma 1", "Outlet Lerma 2", "Sendero Toluca", "Tecnológico Metepec", "Plaza la Vendimia"];
-      
-      // Zona 3: "Galerías Saltillo", "Galerías Zacatecas", "Patio Saltillo", "Sendero Sur Saltillo", "Sendero Escobedo", "Sendero San Roque"
       const zona3 = ["Galerías Saltillo", "Galerías Zacatecas", "Patio Saltillo", "Sendero Sur Saltillo", "Sendero Escobedo", "Sendero San Roque"];
-      
-      // Zona 4: "Celaya", "Galerías Querétaro", "Patio Querétaro", "Alaïa", "Tecnológico Querétaro"
       const zona4 = ["Galerías Celaya", "Galerías Querétaro", "Patio Querétaro", "Alaïa", "Tecnológico Querétaro"];
-      
-      // Zona 5: "Galerías Campeche", "Galeráis San Juan", "Galerías La Paz", "Ámbar Tuxtla Gutiérrez"
       const zona5 = ["Galerías Campeche", "Galerías San Juan", "Galerías La Paz", "Ámbar Tuxtla Gutiérrez"];
-      
-      // Zona 6: "Galerías Metepec 1", "Galerías Metepec 2"
       const zona6 = ["Galerías Metepec 1", "Galerías Metepec 2"];
-
       if (zona1.includes(s)) return "Zona 1";
       else if (zona2.includes(s)) return "Zona 2";
       else if (zona3.includes(s)) return "Zona 3";
@@ -216,7 +201,6 @@
       else if (zona6.includes(s)) return "Zona 6";
       else return "Horarios";
     }
-
 
     function getNextMondaySunday() {
       const today = new Date();
@@ -304,7 +288,9 @@
                 ${getMealTimeOptions()}
               </select>
             </td>
-            <td><input type="checkbox" name="${dayLower}_descanso_${i}" id="${dayLower}_descanso_${i}" onchange="updateAllSchedules()"></td>
+            <td>
+              <input type="checkbox" name="${dayLower}_descanso_${i}" id="${dayLower}_descanso_${i}" onchange="updateAllSchedules()">
+            </td>
           </tr>
         `;
       });
@@ -431,386 +417,180 @@
     }
 
     function generateScheduleChart() {
-  const graficoDiv = document.getElementById("graficoHorarios");
-  graficoDiv.innerHTML = "<h2>Vista Previa de Horarios</h2>";
+      const graficoDiv = document.getElementById("graficoHorarios");
+      graficoDiv.innerHTML = "<h2>Vista Previa de Horarios</h2>";
 
-  const startHour = 9, endHour = 22;
-  const halfHours = [];
-  for (let h = startHour; h <= endHour; h++) {
-    // Genera cada media hora; para h==22 solo se genera "22:00"
-    if (h === endHour) {
-      halfHours.push(h + ":00");
-    } else {
-      halfHours.push(h + ":00");
-      halfHours.push(h + ":30");
-    }
-  }
-  // Ejemplo: halfHours = ["9:00", "9:30", "10:00", "10:30", "11:00", ..., "20:30", "21:00", "21:30", "22:00"]
-
-  // Determinamos los índices para agrupar:
-  // Apertura: 9:00 a 11:00 (sin incluir "11:00")
-  const index11 = halfHours.indexOf("11:00"); // Ej: debería ser 4 (índices 0..3)
-  const aperturaColSpan = index11; // 4 columnas
-
-  // Cierre: de 21:00 a 22:00 (incluye "21:00", "21:30", "22:00")
-  const index21 = halfHours.indexOf("21:00"); // Ej: en nuestro arreglo, "21:00" está en el índice 24
-  const cierreColSpan = halfHours.length - index21; // Desde "21:00" hasta el final
-
-  // Horario laboral: el resto (desde "11:00" hasta antes de "21:00")
-  const laboralColSpan = halfHours.length - aperturaColSpan - cierreColSpan;
-
-  // Para cada día, generamos la tabla con encabezado de 2 filas:
-  const daysArr = [
-    { key: "lunes", label: "Lunes" },
-    { key: "martes", label: "Martes" },
-    { key: "miércoles", label: "Miércoles" },
-    { key: "jueves", label: "Jueves" },
-    { key: "viernes", label: "Viernes" },
-    { key: "sábado", label: "Sábado" },
-    { key: "domingo", label: "Domingo" }
-  ];
-  const numEmpleados = parseInt(document.getElementById("num_empleados").value);
-
-  daysArr.forEach(d => {
-    const dayTitle = document.createElement("div");
-    dayTitle.className = "day-table-title";
-    dayTitle.textContent = d.label;
-    graficoDiv.appendChild(dayTitle);
-
-    const table = document.createElement("table");
-    const thead = document.createElement("thead");
-
-    // Fila 1 del encabezado: Agrupaciones
-    const headRow1 = document.createElement("tr");
-    const thName = document.createElement("th");
-    thName.textContent = "Colaborador";
-    thName.rowSpan = 2; // ocupará ambas filas
-    headRow1.appendChild(thName);
-
-    const thApertura = document.createElement("th");
-    thApertura.colSpan = aperturaColSpan;
-    thApertura.textContent = "Apertura";
-    thApertura.style.backgroundColor = "#0397d2"; // azul claro
-    headRow1.appendChild(thApertura);
-
-    const thLaboral = document.createElement("th");
-    thLaboral.colSpan = laboralColSpan;
-    thLaboral.textContent = "Horario Laboral";
-    headRow1.appendChild(thLaboral);
-
-    const thCierre = document.createElement("th");
-    thCierre.colSpan = cierreColSpan;
-    thCierre.textContent = "Cierre";
-    thCierre.style.backgroundColor = "#d66800"; // color a elección
-    headRow1.appendChild(thCierre);
-
-    thead.appendChild(headRow1);
-
-    // Fila 2 del encabezado: Cada media hora
-    const headRow2 = document.createElement("tr");
-    halfHours.forEach(hh => {
-      const th = document.createElement("th");
-      th.textContent = hh;
-      headRow2.appendChild(th);
-    });
-    thead.appendChild(headRow2);
-
-    table.appendChild(thead);
-
-    // Cuerpo de la tabla (tbody)
-    const tbody = document.createElement("tbody");
-    for (let i = 1; i <= numEmpleados; i++) {
-      const puesto = document.getElementById("puesto_" + i).value;
-      const turno = document.getElementById("turno_" + i).value;
-      const nombre = document.getElementById("nombre_" + i).value || `Empleado ${i}`;
-      const row = document.createElement("tr");
-
-      // Celda de nombre
-      const tdName = document.createElement("td");
-      tdName.textContent = `${nombre} (${puesto}) - ${turno}`;
-      row.appendChild(tdName);
-
-      // Por cada media hora, se asigna el color según el horario
-      halfHours.forEach(slot => {
-        const td = document.createElement("td");
-        td.className = "empty-cell";
-        if (puesto === "Vacante") {
-          td.className = "vacante-cell";
+      const startHour = 9, endHour = 22;
+      const halfHours = [];
+      for (let h = startHour; h <= endHour; h++) {
+        if (h === endHour) {
+          halfHours.push(h + ":00");
         } else {
-          const inTime = document.getElementById(d.key + "_in_" + i).value;
-          const outTime = document.getElementById(d.key + "_out_" + i).value;
-          const mealTime = document.getElementById(d.key + "_com_" + i).value;
-          const descanso = document.getElementById(d.key + "_descanso_" + i).checked;
-
-          const inDec = timeStringToDecimal(inTime);
-          const outDec = timeStringToDecimal(outTime);
-          const mealDec = timeStringToDecimal(mealTime);
-          if (descanso || !inDec || !outDec) {
-            td.className = "rest-cell";
-          } else {
-            const slotDec = timeStringToDecimal(slot);
-            if (slotDec >= inDec && slotDec <= outDec) {
-              td.className = "shift-cell";
-            }
-            if (mealDec && slotDec >= mealDec && slotDec < mealDec + 1) {
-              td.className = "meal-cell";
-            }
-          }
+          halfHours.push(h + ":00");
+          halfHours.push(h + ":30");
         }
-        row.appendChild(td);
-      });
-      tbody.appendChild(row);
-    }
-    table.appendChild(tbody);
-    graficoDiv.appendChild(table);
-  });
-}
-
-
-    function saveGeneratedFile(fileObj) {
-      // Guarda la info en localStorage (si lo deseas para la vista consultor)
-      let files = JSON.parse(localStorage.getItem("generatedFiles") || "[]");
-      files.push(fileObj);
-      localStorage.setItem("generatedFiles", JSON.stringify(files));
-    }
-
-    /* ============================================================
-       Exportar a Excel (sin plantilla) Y subir al servidor
-    ============================================================ */
-    async function downloadExcel() {
-      const sucursal = document.getElementById("sucursal").value;
-      const zone = obtenerZonaPorSucursal(sucursal);
-
-      // 1) Generamos el workbook en memoria
-      const wb = XLSX.utils.book_new();
-      wb.Props = {
-        Title: "Horarios",
-        Subject: "Horarios Generados",
-        Author: "Tu App",
-        CreatedDate: new Date()
-      };
-
-      // Llenamos las hojas para cada día
-      days.forEach(day => {
-        const data = [];
-        const header = ["Colaborador", "Hora Entrada", "Hora de Salida", "Hora de Comida", "Descanso"];
-        data.push(header);
-
-        const numEmpleados = parseInt(document.getElementById("num_empleados").value);
-        for (let i = 1; i <= numEmpleados; i++) {
-          const nombre = document.getElementById("nombre_" + i).value || `Empleado ${i}`;
-          const inTime = document.getElementById(day + "_in_" + i).value || "";
-          const outTime = document.getElementById(day + "_out_" + i).value || "";
-          const comTime = document.getElementById(day + "_com_" + i).value || "";
-          const descanso = document.getElementById(day + "_descanso_" + i).checked ? "Sí" : "No";
-          data.push([nombre, inTime, outTime, comTime, descanso]);
-        }
-
-        const ws = XLSX.utils.aoa_to_sheet(data);
-        XLSX.utils.book_append_sheet(wb, ws, day);
-      });
-
-      // 2) Escribimos en base64
-      const wbout = XLSX.write(wb, { bookType: "xlsx", type: "base64" });
-      // Lo convertimos en dataURL
-      const excelDataUri = "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64," + wbout;
-
-      // 3) Llamada al endpoint para almacenar Excel en el servidor
-      const fileName = `Horarios_${zone}.xlsx`;
-      try {
-        const res = await fetch("/almacenar_excel", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sucursal: sucursal,
-            excelData: excelDataUri,
-            fileName: fileName
-          })
-        });
-        const data = await res.json();
-        console.log("Excel almacenado en el servidor:", data);
-        alert("Excel generado y almacenado en el servidor.");
-      } catch (error) {
-        console.error("Error al almacenar Excel:", error);
       }
 
-      // 4) Descarga local en el navegador (opcional)
-      // Convertimos la base64 en un blob
-      const binary = atob(wbout);
-      const arrayBuffer = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) {
-        arrayBuffer[i] = binary.charCodeAt(i);
-      }
-      const blob = new Blob([arrayBuffer], { type: "application/octet-stream" });
-      const url = URL.createObjectURL(blob);
+      const index11 = halfHours.indexOf("11:00");
+      const aperturaColSpan = index11;
+      const index21 = halfHours.indexOf("21:00");
+      const cierreColSpan = halfHours.length - index21;
+      const laboralColSpan = halfHours.length - aperturaColSpan - cierreColSpan;
 
-      // Guarda info local
-      const fileObj = {
-        type: "Excel",
-        branch: sucursal,
-        zone: zone,
-        path: "/zonas/" + zone,
-        timestamp: new Date().toISOString(),
-        url: url,
-        fileName: fileName
-      };
-      saveGeneratedFile(fileObj);
-
-      // Dispara la descarga
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }
-
-    /* ============================================================
-       Exportar a PDF con fecha de la siguiente semana
-       y almacenar con ruta /zonas/<Zona>
-    ============================================================ */
-  function generatePDF() {
-  const sucursal = document.getElementById("sucursal").value;
-  const zone = obtenerZonaPorSucursal(sucursal);
-
-  // Calcula la fecha de la próxima semana (lunes a domingo)
-  const { monday, sunday } = getNextMondaySunday();
-  const dateRange = `Del ${formatDateDMY(monday)} al ${formatDateDMY(sunday)}`;
-
-  const grafico = document.getElementById("graficoHorarios");
-  html2canvas(grafico, { scale: 2 }).then(canvas => {
-    const imgData = canvas.toDataURL("image/png");
-
-    // Crea el PDF usando "px" y las dimensiones exactas del canvas
-    const pdf = new jsPDF({
-      orientation: "landscape",
-      unit: "px",
-      format: [canvas.width, canvas.height]
-    });
-
-    // Se añade la imagen en su tamaño original (sin escalado)
-    pdf.addImage(imgData, "PNG", 0, 0, canvas.width, canvas.height);
-
-    // Sanitiza las fechas para el nombre del archivo
-    const safeMonday = formatDateDMY(monday).replace(/\//g, "-");
-    const safeSunday = formatDateDMY(sunday).replace(/\//g, "-");
-    const fileName = `Horarios_${sucursal}_${safeMonday}_al_${safeSunday}.pdf`;
-
-    // Descarga el PDF
-    pdf.save(fileName);
-  });
-}
-
-    /* ============================================================
-       Exportar a Excel con plantilla (y subir al servidor)
-    ============================================================ */
-    async function generateExcelFromTemplate() {
-      const sucursal = document.getElementById("sucursal").value;
-      const zone = obtenerZonaPorSucursal(sucursal);
-
-      // 1) Descargamos la plantilla
-      const response = await fetch("Horarios_Plantilla.xlsx");
-      const arrayBuffer = await response.arrayBuffer();
-
-      // 2) Cargamos la plantilla con SheetJS
-      const workbook = XLSX.read(arrayBuffer, { type: "array" });
-      const worksheet = workbook.Sheets["Plantilla"]; // Ajusta si tu hoja no se llama "Plantilla"
-
-      // Mapeo de columnas
-      const day_to_entry = {
-        "lunes": "E",
-        "martes": "H",
-        "miércoles": "K",
-        "jueves": "N",
-        "viernes": "Q",
-        "sábado": "T",
-        "domingo": "W"
-      };
-      const day_to_meal = {
-        "lunes": "G",
-        "martes": "J",
-        "miércoles": "M",
-        "jueves": "P",
-        "viernes": "S",
-        "sábado": "V",
-        "domingo": "Y"
-      };
-
-      let filaInicial = 2;
+      const daysArr = [
+        { key: "lunes", label: "Lunes" },
+        { key: "martes", label: "Martes" },
+        { key: "miércoles", label: "Miércoles" },
+        { key: "jueves", label: "Jueves" },
+        { key: "viernes", label: "Viernes" },
+        { key: "sábado", label: "Sábado" },
+        { key: "domingo", label: "Domingo" }
+      ];
       const numEmpleados = parseInt(document.getElementById("num_empleados").value);
 
-      // 3) Rellenamos la plantilla
-      for (let i = 1; i <= numEmpleados; i++) {
-        let fila = filaInicial + i - 1;
-        let nombre = document.getElementById("nombre_" + i).value;
-        let puesto = document.getElementById("puesto_" + i).value;
-        worksheet["C" + fila] = { t: 's', v: nombre };
-        worksheet["D" + fila] = { t: 's', v: puesto };
-        for (const day in day_to_entry) {
-          let entryTime = document.getElementById(day + "_in_" + i).value || "";
-          let mealTime  = document.getElementById(day + "_com_" + i).value || "";
-          worksheet[ day_to_entry[day] + fila ] = { t: 's', v: entryTime };
-          worksheet[ day_to_meal[day] + fila ] = { t: 's', v: mealTime };
-        }
-      }
+      daysArr.forEach(d => {
+        const dayTitle = document.createElement("div");
+        dayTitle.className = "day-table-title";
+        dayTitle.textContent = d.label;
+        graficoDiv.appendChild(dayTitle);
 
-      // Ponemos la sucursal y zona en A1 (opcional)
-      worksheet["A1"] = { t: 's', v: "Sucursal: " + sucursal + " - " + zone };
+        const table = document.createElement("table");
+        const thead = document.createElement("thead");
 
-      // 4) Generamos un array buffer en base64
-      const wbout = XLSX.write(workbook, { bookType: "xlsx", type: "base64" });
-      const excelDataUri = "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64," + wbout;
+        const headRow1 = document.createElement("tr");
+        const thName = document.createElement("th");
+        thName.textContent = "Colaborador";
+        thName.rowSpan = 2;
+        headRow1.appendChild(thName);
 
-      const fileName = `Horarios_${zone}_Plantilla.xlsx`;
+        const thApertura = document.createElement("th");
+        thApertura.colSpan = aperturaColSpan;
+        thApertura.textContent = "Apertura";
+        thApertura.style.backgroundColor = "#0397d2";
+        headRow1.appendChild(thApertura);
 
-      // 5) Subimos al servidor
-      try {
-        const res = await fetch("/almacenar_excel", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sucursal: sucursal,
-            excelData: excelDataUri,
-            fileName: fileName
-          })
+        const thLaboral = document.createElement("th");
+        thLaboral.colSpan = laboralColSpan;
+        thLaboral.textContent = "Horario Laboral";
+        headRow1.appendChild(thLaboral);
+
+        const thCierre = document.createElement("th");
+        thCierre.colSpan = cierreColSpan;
+        thCierre.textContent = "Cierre";
+        thCierre.style.backgroundColor = "#d66800";
+        headRow1.appendChild(thCierre);
+
+        thead.appendChild(headRow1);
+
+        const headRow2 = document.createElement("tr");
+        halfHours.forEach(hh => {
+          const th = document.createElement("th");
+          th.textContent = hh;
+          headRow2.appendChild(th);
         });
-        const data = await res.json();
-        console.log("Excel (Plantilla) almacenado en servidor:", data);
-        alert("Excel con Plantilla generado y almacenado en el servidor.");
-      } catch (error) {
-        console.error("Error al almacenar Excel (Plantilla):", error);
-      }
+        thead.appendChild(headRow2);
 
-      // 6) Descarga local en el navegador (opcional)
-      // Convertimos base64 a Blob
-      const binary = atob(wbout);
-      const array = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) {
-        array[i] = binary.charCodeAt(i);
-      }
-      const blob = new Blob([array], { type: "application/octet-stream" });
-      const url = URL.createObjectURL(blob);
+        table.appendChild(thead);
 
-      const fileObj = {
-        type: "Excel (Plantilla)",
-        branch: sucursal,
-        zone: zone,
-        path: "/zonas/" + zone,
-        timestamp: new Date().toISOString(),
-        url: url,
-        fileName: fileName
-      };
-      saveGeneratedFile(fileObj);
+        const tbody = document.createElement("tbody");
+        for (let i = 1; i <= numEmpleados; i++) {
+          const puesto = document.getElementById("puesto_" + i).value;
+          const turno = document.getElementById("turno_" + i).value;
+          const nombre = document.getElementById("nombre_" + i).value || `Empleado ${i}`;
+          const row = document.createElement("tr");
 
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+          const tdName = document.createElement("td");
+          tdName.textContent = `${nombre} (${puesto}) - ${turno}`;
+          row.appendChild(tdName);
+
+          halfHours.forEach(slot => {
+            const td = document.createElement("td");
+            td.className = "empty-cell";
+            if (puesto === "Vacante") {
+              td.className = "vacante-cell";
+            } else {
+              const inTime = document.getElementById(d.key + "_in_" + i).value;
+              const outTime = document.getElementById(d.key + "_out_" + i).value;
+              const mealTime = document.getElementById(d.key + "_com_" + i).value;
+              const descanso = document.getElementById(d.key + "_descanso_" + i).checked;
+
+              const inDec = timeStringToDecimal(inTime);
+              const outDec = timeStringToDecimal(outTime);
+              const mealDec = timeStringToDecimal(mealTime);
+              if (descanso || !inDec || !outDec) {
+                td.className = "rest-cell";
+              } else {
+                const slotDec = timeStringToDecimal(slot);
+                if (slotDec >= inDec && slotDec <= outDec) {
+                  td.className = "shift-cell";
+                }
+                if (mealDec && slotDec >= mealDec && slotDec < mealDec + 1) {
+                  td.className = "meal-cell";
+                }
+              }
+            }
+            row.appendChild(td);
+          });
+          tbody.appendChild(row);
+        }
+        table.appendChild(tbody);
+        graficoDiv.appendChild(table);
+      });
     }
 
-    // Ejecutar la generación de contenedores al cargar la página
+    /* ============================================================
+       Generar PDF completo (multipágina si es necesario)
+    ============================================================ */
+    function generatePDF() {
+      const sucursal = document.getElementById("sucursal").value;
+      const { monday, sunday } = getNextMondaySunday();
+      const dateRange = `Del ${formatDateDMY(monday)} al ${formatDateDMY(sunday)}`;
+      const grafico = document.getElementById("graficoHorarios");
+      
+      html2canvas(grafico, { scale: 2 }).then(canvas => {
+        const imgData = canvas.toDataURL("image/png");
+        const totalImgHeight = canvas.height;
+        const imgWidth = canvas.width;
+        // Definimos el alto de cada página en píxeles (puedes ajustar este valor)
+        const pageHeight = 600; 
+        const totalPages = Math.ceil(totalImgHeight / pageHeight);
+
+        // Creamos un PDF con unidad "px" y tamaño de página personalizado (ancho completo y alto definido)
+        const { jsPDF } = window.jspdf;
+        let pdfDoc = new jsPDF({
+          orientation: 'portrait',
+          unit: 'px',
+          format: [imgWidth, pageHeight]
+        });
+
+        for (let i = 0; i < totalPages; i++) {
+          const sourceY = i * pageHeight;
+          let sourceHeight = pageHeight;
+          if (sourceY + sourceHeight > totalImgHeight) {
+            sourceHeight = totalImgHeight - sourceY;
+          }
+          // Creamos un canvas temporal para la porción de la imagen
+          let pageCanvas = document.createElement('canvas');
+          pageCanvas.width = imgWidth;
+          pageCanvas.height = sourceHeight;
+          let pageCtx = pageCanvas.getContext('2d');
+          pageCtx.drawImage(canvas, 0, sourceY, imgWidth, sourceHeight, 0, 0, imgWidth, sourceHeight);
+          let pageImgData = pageCanvas.toDataURL("image/png");
+          pdfDoc.addImage(pageImgData, "PNG", 0, 0, imgWidth, sourceHeight);
+          if (i < totalPages - 1) {
+            pdfDoc.addPage();
+          }
+        }
+        // Opcional: agregar un encabezado en la primera página
+        // pdfDoc.setFontSize(14);
+        // pdfDoc.text(`Sucursal: ${sucursal} - ${dateRange}`, 20, 30);
+
+        // Guarda el PDF
+        pdfDoc.save(`Horarios_${sucursal}_${formatDateDMY(monday).replace(/\//g, "-")}_al_${formatDateDMY(sunday).replace(/\//g, "-")}.pdf`);
+      });
+    }
+
+    // Inicializamos los contenedores al cargar la página
     document.addEventListener("DOMContentLoaded", generateEmployeeContainers);
   </script>
 </body>
