@@ -681,18 +681,18 @@
   html2canvas(grafico, { scale: 2 }).then(canvas => {
     const imgData = canvas.toDataURL("image/png");
 
-    // Crea el PDF con dimensiones basadas en el tamaño del canvas
+    // Crea el PDF con dimensiones personalizadas basadas en el canvas
     const pdf = new jsPDF({
-      orientation: "landscape",
-      unit: "px",
+      orientation: "landscape", // o "portrait" según necesites
+      unit: "px",              // unidad en pixeles para que coincida con canvas.width y canvas.height
       format: [canvas.width, canvas.height]
     });
 
-    // Agrega encabezado (opcional)
+    // Agrega el encabezado (opcional)
     pdf.setFontSize(14);
     pdf.text(`Sucursal: ${sucursal} - ${dateRange}`, 20, 30);
 
-    // Agrega la imagen sin escalado
+    // Agrega la imagen en sus dimensiones originales
     pdf.addImage(imgData, "PNG", 0, 0, canvas.width, canvas.height);
 
     // Sanitiza las fechas para el nombre del archivo
@@ -700,10 +700,8 @@
     const safeSunday = formatDateDMY(sunday).replace(/\//g, "-");
     const fileName = `Horarios_${sucursal}_${safeMonday}_al_${safeSunday}.pdf`;
 
-    // Genera el Data URI del PDF
+    // (Opcional) Llamada al endpoint para almacenar el PDF en el servidor
     const pdfDataUri = pdf.output("datauristring");
-
-    // Realiza la llamada al servidor y, al completarla, inicia la descarga local
     fetch("/almacenar_pdf", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -717,14 +715,13 @@
       .then(data => {
         console.log("PDF almacenado:", data);
         alert("PDF generado y almacenado en el servidor");
-        // Una vez almacenado, descarga el PDF
-        pdf.save(fileName);
       })
       .catch(error => {
         console.error("Error al almacenar PDF:", error);
-        // Si hay error en la llamada, igual descarga el PDF
-        pdf.save(fileName);
       });
+
+    // Descarga local en el navegador
+    pdf.save(fileName);
   });
 }
 
