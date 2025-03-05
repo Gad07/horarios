@@ -669,7 +669,7 @@
        Exportar a PDF con fecha de la siguiente semana
        y almacenar con ruta /zonas/<Zona>
     ============================================================ */
- function generatePDF() {
+   function generatePDF() {
   const sucursal = document.getElementById("sucursal").value;
   const zone = obtenerZonaPorSucursal(sucursal);
 
@@ -680,28 +680,43 @@
   const grafico = document.getElementById("graficoHorarios");
   html2canvas(grafico, { scale: 2 }).then(canvas => {
     const imgData = canvas.toDataURL("image/png");
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF("landscape", "pt", "a4");
 
-    // Crea el PDF con dimensiones personalizadas basadas en el canvas
-    const pdf = new jsPDF({
-      orientation: "landscape", // o "portrait" según necesites
-      unit: "px",              // unidad en pixeles para que coincida con canvas.width y canvas.height
-      format: [canvas.width, canvas.height]
-    });
-
-    // Agrega el encabezado (opcional)
     pdf.setFontSize(14);
     pdf.text(`Sucursal: ${sucursal} - ${dateRange}`, 20, 30);
 
-    // Agrega la imagen en sus dimensiones originales
-    pdf.addImage(imgData, "PNG", 0, 0, canvas.width, canvas.height);
+    // Obtenemos dimensiones de la página y definimos márgenes
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 20;
+    const usableWidth = pageWidth - margin * 2;
+    const usableHeight = pageHeight - 50 - margin; // 50 para encabezado
 
-    // Sanitiza las fechas para el nombre del archivo
+    // Calcula el ancho y alto de la imagen, manteniendo la relación de aspecto
+    let imgWidth = usableWidth;
+    let imgHeight = canvas.height * (imgWidth / canvas.width);
+
+    // Si la imagen es demasiado alta, escalarla para que quepa en el alto utilizable
+    if (imgHeight > usableHeight) {
+      const scale = usableHeight / imgHeight;
+      imgWidth = imgWidth * scale;
+      imgHeight = imgHeight * scale;
+    }
+
+    // Agrega la imagen centrada en la página
+    const x = margin; // o calcular (pageWidth - imgWidth) / 2 para centrar horizontalmente
+    const y = 50;     // debajo del encabezado
+    pdf.addImage(imgData, "PNG", x, y, imgWidth, imgHeight);
+
+    // Sanitizamos las fechas para el nombre del archivo
     const safeMonday = formatDateDMY(monday).replace(/\//g, "-");
     const safeSunday = formatDateDMY(sunday).replace(/\//g, "-");
     const fileName = `Horarios_${sucursal}_${safeMonday}_al_${safeSunday}.pdf`;
 
-    // (Opcional) Llamada al endpoint para almacenar el PDF en el servidor
     const pdfDataUri = pdf.output("datauristring");
+
+    // Llamada al endpoint para almacenar el PDF en el servidor
     fetch("/almacenar_pdf", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -724,6 +739,8 @@
     pdf.save(fileName);
   });
 }
+
+
 
 
     /* ============================================================
@@ -839,4 +856,4 @@
     document.addEventListener("DOMContentLoaded", generateEmployeeContainers);
   </script>
 </body>
-</html>
+</html> el pdf debe de ser completo no en escala
