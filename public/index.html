@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Generación de Horarios (Usuario)</title>
+  <title>Horarios</title>
   <!-- Estilos en línea -->
   <style>
     body {
@@ -118,11 +118,12 @@
 </head>
 <body>
   <div class="container">
-    <h2>Formulario de Horarios</h2>
+    <!-- Título actualizado que mostrará la sucursal y el rango de fechas -->
+    <h2 id="tituloHorarios">Horarios</h2>
     <!-- Selección de sucursal -->
     <div class="form-section">
       <label for="sucursal">Sucursal:</label>
-      <select id="sucursal" required>
+      <select id="sucursal" required onchange="updateAllSchedules()">
         <option value="">Selecciona una sucursal</option>
         <option value="Alaïa">Alaïa</option>
         <option value="Avándaro">Avándaro</option>
@@ -413,7 +414,21 @@
           }
         });
       }
+      updateTitulo();
       generateScheduleChart();
+    }
+
+    function updateTitulo() {
+      const sucursal = document.getElementById("sucursal").value || "Horarios";
+      const { monday, sunday } = getNextMondaySunday();
+      const dateRange = `Del ${formatDateDMY(monday)} al ${formatDateDMY(sunday)}`;
+      // Actualizamos el h2 visible
+      const tituloHorarios = document.getElementById("tituloHorarios");
+      if (tituloHorarios) {
+        tituloHorarios.textContent = `${sucursal} - ${dateRange}`;
+      }
+      // Actualizamos el título de la pestaña
+      document.title = `${sucursal} - ${dateRange}`;
     }
 
     function generateScheduleChart() {
@@ -542,52 +557,47 @@
        Generar PDF completo (multipágina si es necesario)
     ============================================================ */
     function generatePDF() {
-  const sucursal = document.getElementById("sucursal").value;
-  const { monday, sunday } = getNextMondaySunday();
-  const dateRange = `Del ${formatDateDMY(monday)} al ${formatDateDMY(sunday)}`;
-  const grafico = document.getElementById("graficoHorarios");
-
-  html2canvas(grafico, { scale: 2 }).then(canvas => {
-    const imgData = canvas.toDataURL("image/png");
-    const { jsPDF } = window.jspdf;
-    // Creamos el PDF con tamaño A4 en modo portrait y unidad "pt"
-    let pdfDoc = new jsPDF("portrait", "pt", "a4");
-    const pdfPageWidth = pdfDoc.internal.pageSize.getWidth(); // ancho en pt
-    const pdfPageHeight = pdfDoc.internal.pageSize.getHeight(); // alto en pt
-
-    // Calculamos el factor de escala para que el ancho del canvas se ajuste al ancho de la página
-    const scale = pdfPageWidth / canvas.width;
-    const scaledImgHeight = canvas.height * scale;
-
-    // Determinamos cuántas páginas se necesitan (según la altura escalada)
-    const totalPages = Math.ceil(scaledImgHeight / pdfPageHeight);
-
-    for (let i = 0; i < totalPages; i++) {
-      // Calculamos la porción del canvas (en unidades originales) que cabe en una página
-      const sourceY = i * (pdfPageHeight / scale);
-      let sourceHeight = pdfPageHeight / scale;
-      if (sourceY + sourceHeight > canvas.height) {
-        sourceHeight = canvas.height - sourceY;
-      }
-      // Creamos un canvas temporal para la porción actual
-      let pageCanvas = document.createElement('canvas');
-      pageCanvas.width = canvas.width;
-      pageCanvas.height = sourceHeight;
-      let pageCtx = pageCanvas.getContext('2d');
-      pageCtx.drawImage(canvas, 0, sourceY, canvas.width, sourceHeight, 0, 0, canvas.width, sourceHeight);
-      let pageImgData = pageCanvas.toDataURL("image/png");
+      const sucursal = document.getElementById("sucursal").value;
+      const { monday, sunday } = getNextMondaySunday();
+      const dateRange = `Del ${formatDateDMY(monday)} al ${formatDateDMY(sunday)}`;
       
-      // Agregamos la imagen escalada a la página actual
-      pdfDoc.addImage(pageImgData, "PNG", 0, 0, pdfPageWidth, sourceHeight * scale);
-      if (i < totalPages - 1) {
-        pdfDoc.addPage();
-      }
-    }
-    // Guarda el PDF con nombre formateado
-    pdfDoc.save(`Horarios_${sucursal}_${formatDateDMY(monday).replace(/\//g, "-")}_al_${formatDateDMY(sunday).replace(/\//g, "-")}.pdf`);
-  });
-}
+      // Actualizar el título (en la vista previa y pestaña)
+      updateTitulo();
 
+      const grafico = document.getElementById("graficoHorarios");
+
+      html2canvas(grafico, { scale: 2 }).then(canvas => {
+        const imgData = canvas.toDataURL("image/png");
+        const { jsPDF } = window.jspdf;
+        let pdfDoc = new jsPDF("portrait", "pt", "a4");
+        const pdfPageWidth = pdfDoc.internal.pageSize.getWidth();
+        const pdfPageHeight = pdfDoc.internal.pageSize.getHeight();
+
+        const scale = pdfPageWidth / canvas.width;
+        const scaledImgHeight = canvas.height * scale;
+        const totalPages = Math.ceil(scaledImgHeight / pdfPageHeight);
+
+        for (let i = 0; i < totalPages; i++) {
+          const sourceY = i * (pdfPageHeight / scale);
+          let sourceHeight = pdfPageHeight / scale;
+          if (sourceY + sourceHeight > canvas.height) {
+            sourceHeight = canvas.height - sourceY;
+          }
+          let pageCanvas = document.createElement('canvas');
+          pageCanvas.width = canvas.width;
+          pageCanvas.height = sourceHeight;
+          let pageCtx = pageCanvas.getContext('2d');
+          pageCtx.drawImage(canvas, 0, sourceY, canvas.width, sourceHeight, 0, 0, canvas.width, sourceHeight);
+          let pageImgData = pageCanvas.toDataURL("image/png");
+
+          pdfDoc.addImage(pageImgData, "PNG", 0, 0, pdfPageWidth, sourceHeight * scale);
+          if (i < totalPages - 1) {
+            pdfDoc.addPage();
+          }
+        }
+        pdfDoc.save(`Horarios_${sucursal}_${formatDateDMY(monday).replace(/\//g, "-")}_al_${formatDateDMY(sunday).replace(/\//g, "-")}.pdf`);
+      });
+    }
 
     // Inicializamos los contenedores al cargar la página
     document.addEventListener("DOMContentLoaded", generateEmployeeContainers);
