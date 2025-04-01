@@ -118,7 +118,7 @@
 </head>
 <body>
   <div class="container">
-    <!-- Título actualizado que mostrará la sucursal y el rango de fechas -->
+    <!-- Título visible de la sección de formulario -->
     <h2 id="tituloHorarios">Horarios</h2>
     <!-- Selección de sucursal -->
     <div class="form-section">
@@ -169,7 +169,7 @@
     <form id="horariosForm">
       <div id="empleados"></div>
       <div class="buttons">
-        <!-- Únicamente se deja el botón para generar el PDF -->
+        <!-- Botón para generar el PDF -->
         <button type="button" onclick="generatePDF()">Generar PDF del Gráfico</button>
       </div>
     </form>
@@ -177,8 +177,7 @@
 
   <!-- Contenedor de vista previa del gráfico (usando todo el ancho de la pantalla) -->
   <div id="graficoHorarios">
-    <h2>Vista Previa de Horarios</h2>
-    <!-- El gráfico se generará dinámicamente -->
+    <!-- Aquí se insertará dinámicamente el encabezado con la sucursal y la semana -->
   </div>
 
   <!-- Lógica en JavaScript -->
@@ -418,22 +417,28 @@
       generateScheduleChart();
     }
 
+    // Función que actualiza el título (en la sección de formulario y la pestaña)
     function updateTitulo() {
       const sucursal = document.getElementById("sucursal").value || "Horarios";
       const { monday, sunday } = getNextMondaySunday();
       const dateRange = `Del ${formatDateDMY(monday)} al ${formatDateDMY(sunday)}`;
-      // Actualizamos el h2 visible
+      // Actualiza el h2 del formulario
       const tituloHorarios = document.getElementById("tituloHorarios");
       if (tituloHorarios) {
         tituloHorarios.textContent = `${sucursal} - ${dateRange}`;
       }
-      // Actualizamos el título de la pestaña
+      // Actualiza el título de la pestaña
       document.title = `${sucursal} - ${dateRange}`;
     }
 
+    // Genera el gráfico que se usará para la vista previa y para el PDF
     function generateScheduleChart() {
       const graficoDiv = document.getElementById("graficoHorarios");
-      graficoDiv.innerHTML = "<h2>Vista Previa de Horarios</h2>";
+      // Aquí se genera el título que aparecerá en el PDF, con sucursal y semana
+      const sucursal = document.getElementById("sucursal").value || "Horarios";
+      const { monday, sunday } = getNextMondaySunday();
+      const dateRange = `Del ${formatDateDMY(monday)} al ${formatDateDMY(sunday)}`;
+      graficoDiv.innerHTML = `<h2>${sucursal} - ${dateRange}</h2>`;
 
       const startHour = 9, endHour = 22;
       const halfHours = [];
@@ -557,12 +562,10 @@
        Generar PDF completo (multipágina si es necesario)
     ============================================================ */
     function generatePDF() {
-      const sucursal = document.getElementById("sucursal").value;
-      const { monday, sunday } = getNextMondaySunday();
-      const dateRange = `Del ${formatDateDMY(monday)} al ${formatDateDMY(sunday)}`;
-      
-      // Actualizar el título (en la vista previa y pestaña)
+      // Actualizamos el título para el PDF
       updateTitulo();
+      // Se vuelve a generar el gráfico para que incluya el nuevo encabezado
+      generateScheduleChart();
 
       const grafico = document.getElementById("graficoHorarios");
 
@@ -595,6 +598,10 @@
             pdfDoc.addPage();
           }
         }
+
+        // Usamos el mismo título para nombrar el PDF
+        const sucursal = document.getElementById("sucursal").value;
+        const { monday, sunday } = getNextMondaySunday();
         pdfDoc.save(`Horarios_${sucursal}_${formatDateDMY(monday).replace(/\//g, "-")}_al_${formatDateDMY(sunday).replace(/\//g, "-")}.pdf`);
       });
     }
